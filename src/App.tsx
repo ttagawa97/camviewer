@@ -1,4 +1,4 @@
-import { Component, FormEvent, ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { Component, FormEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api";
 import { mock, mockLogin, roleLabel } from "./mock";
 import type {
@@ -115,6 +115,7 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { message: str
 
 function AppContent() {
   const [useMock] = useState(() => import.meta.env.VITE_USE_MOCK === "true");
+  const authCheckVersion = useRef(0);
   const [user, setUser] = useState<User | null>(() => loadStoredUser());
   const [authChecked, setAuthChecked] = useState(() => useMock || !loadStoredUser());
   const [screen, setScreen] = useState<Screen>(() => {
@@ -217,15 +218,16 @@ function AppContent() {
     }
 
     let cancelled = false;
+    const version = ++authCheckVersion.current;
     api.me()
       .then((nextUser) => {
-        if (cancelled) return;
+        if (cancelled || version !== authCheckVersion.current) return;
         storeUser(nextUser);
         setUser(nextUser);
         setScreen((current) => (current === "login" ? initialScreenFor(nextUser) : current));
       })
       .catch(() => {
-        if (cancelled) return;
+        if (cancelled || version !== authCheckVersion.current) return;
         storeUser(null);
         setUser(null);
         setScreen("login");
@@ -235,7 +237,7 @@ function AppContent() {
         setCheckedCameraIds([]);
       })
       .finally(() => {
-        if (!cancelled) setAuthChecked(true);
+        if (!cancelled && version === authCheckVersion.current) setAuthChecked(true);
       });
 
     return () => {
@@ -310,6 +312,8 @@ function AppContent() {
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    authCheckVersion.current += 1;
+    setAuthChecked(true);
     const form = new FormData(event.currentTarget);
     const loginId = String(form.get("login_id") ?? "");
     const password = String(form.get("password") ?? "");
@@ -322,6 +326,9 @@ function AppContent() {
         nextUser = mockLogin(loginId, password);
       }
       if (!nextUser) throw new Error("ログインIDまたはパスワードが正しくありません");
+      if (!useMock) {
+        nextUser = await api.me();
+      }
       storeUser(nextUser);
       setUser(nextUser);
       setScreen(initialScreenFor(nextUser));
@@ -336,6 +343,7 @@ function AppContent() {
   };
 
   const logout = async () => {
+    authCheckVersion.current += 1;
     try {
       if (!useMock) await api.logout();
     } finally {
@@ -412,6 +420,41 @@ function AppContent() {
     });
   };
 
+  const deleteCompany = async (company: Company) => {
+    if (!window.confirm(`${company.company_name} を削除します。\n配下の現場、カメラ、撮影済みデータもすべて削除されます。\nよろしいですか？`)) return;
+    await withLoading(async () => {
+      if (!useMock) await api.deleteCompany(company.company_id);
+      setCompanies((current) => current.filter((item) => item.company_id !== company.company_id));
+      if (selectedCompany?.company_id === company.company_id) {
+        setSelectedCompany(null);
+        setSelectedSite(null);
+        setSelectedCamera(null);
+        setSites([]);
+        setCameras([]);
+      }
+      showToast("企業を削除しました");
+    });
+  };
+
+  const deleteSite = async (site: Site) => {
+    if (!window.confirm(`${site.site_name} を削除します。\n配下のカメラ、撮影済みデータもすべて削除されます。\nよろしいですか？`)) return;
+    await withLoading(async () => {
+      if (!useMock) await api.deleteSite(site.site_id);
+      setSites((current) => current.filter((item) => item.site_id !== site.site_id));
+      setCompanies((current) =>
+        current.map((company) =>
+          company.company_id === site.company_id ? { ...company, site_count: Math.max((company.site_count ?? 1) - 1, 0) } : company
+        )
+      );
+      if (selectedSite?.site_id === site.site_id) {
+        setSelectedSite(null);
+        setSelectedCamera(null);
+        setCameras([]);
+      }
+      showToast("現場を削除しました");
+    });
+  };
+
   if (!user || screen === "login") {
     return (
       <main className="login-shell">
@@ -474,6 +517,8 @@ function AppContent() {
           onSelect={selectCompany}
           actionLabel="企業追加"
           onAction={() => setScreen("companyForm")}
+          deleteLabel="企業削除"
+          onDelete={deleteCompany}
         />
       )}
 
@@ -503,6 +548,8 @@ function AppContent() {
           onBack={user.role === "system_admin" ? goCompanySelect : undefined}
           actionLabel="現場追加"
           onAction={() => setScreen("siteForm")}
+          deleteLabel="現場削除"
+          onDelete={deleteSite}
         />
       )}
 
@@ -624,7 +671,9 @@ function SelectionTable<T extends object>({
   backLabel,
   onBack,
   actionLabel,
-  onAction
+  onAction,
+  deleteLabel,
+  onDelete
 }: {
   title: string;
   searchPlaceholder: string;
@@ -637,8 +686,11 @@ function SelectionTable<T extends object>({
   onBack?: () => void;
   actionLabel?: string;
   onAction?: () => void;
+  deleteLabel?: string;
+  onDelete?: (row: T) => void;
 }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const selectedRow = rows[selectedIndex] ?? null;
   const readCell = (row: T, key: string) => (row as Record<string, unknown>)[key];
   return (
     <section className="content-panel">
@@ -679,7 +731,12 @@ function SelectionTable<T extends object>({
       </div>
       <div className="footer-actions">
         {backLabel && <button className="ghost" onClick={onBack}>{backLabel}</button>}
-        <button className="primary" disabled={rows.length === 0} onClick={() => rows[selectedIndex] && onSelect(rows[selectedIndex])}>
+        {deleteLabel && onDelete && (
+          <button className="ghost danger" disabled={!selectedRow} onClick={() => selectedRow && onDelete(selectedRow)}>
+            {deleteLabel}
+          </button>
+        )}
+        <button className="primary" disabled={!selectedRow} onClick={() => selectedRow && onSelect(selectedRow)}>
           選択
         </button>
       </div>

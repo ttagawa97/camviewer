@@ -63,6 +63,16 @@ button:disabled {
   background: transparent;
 }
 
+.danger {
+  border-color: #c76b6b;
+  color: #9b2f2f;
+}
+
+.danger:hover:not(:disabled) {
+  border-color: #a33d3d;
+  background: #fff4f4;
+}
+
 .wide {
   width: 100%;
 }

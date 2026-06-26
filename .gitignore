@@ -8,6 +8,9 @@ package-lock.json
 dist/
 .build/
 
+# spec files
+spec/
+
 # TypeScript
 *.tsbuildinfo
 

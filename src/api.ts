@@ -139,6 +139,19 @@ function normalizeCompany(company: Company | { id?: number | string; name?: stri
   };
 }
 
+function normalizeSite(site: Site | { id?: number | string; company?: string; name?: string; is_active?: boolean; camera_count?: number }): Site {
+  if ("site_id" in site) return site;
+
+  return {
+    site_id: String(site.id ?? ""),
+    company_id: site.company ?? "",
+    site_name: site.name ?? "",
+    status: site.is_active === false ? "inactive" : "active",
+    camera_count: site.camera_count,
+    latest_captured_at: null
+  };
+}
+
 export const api = {
   async login(login_id: string, password: string) {
     const data = await request<LoginResponse>("/auth/login/", {
@@ -176,11 +189,16 @@ export const api = {
       body: JSON.stringify(values)
     }),
 
+  deleteCompany: (companyId: string) => request(`/companies/${companyId}/`, { method: "DELETE" }),
+
   sites: (companyId?: string, keyword = "") => {
     const params = new URLSearchParams({ status: "active", page: "1", page_size: "100" });
     if (companyId) params.set("company_id", companyId);
     if (keyword) params.set("keyword", keyword);
-    return request<{ sites: Site[] }>(`/sites/?${params.toString()}`).then((data) => data.sites);
+    return request<{ sites?: Site[]; results?: Site[] } | Site[]>(`/sites/?${params.toString()}`).then((data) => {
+      const rows = Array.isArray(data) ? data : data.sites ?? data.results ?? [];
+      return rows.map(normalizeSite);
+    });
   },
 
   createSite: (values: SiteFormValues) =>
@@ -188,6 +206,8 @@ export const api = {
       method: "POST",
       body: JSON.stringify(values)
     }),
+
+  deleteSite: (siteId: string) => request(`/sites/${siteId}/`, { method: "DELETE" }),
 
   cameras: (companyId?: string | null, siteId?: string | null, keyword = "") => {
     const params = new URLSearchParams();
