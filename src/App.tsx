@@ -17,6 +17,14 @@ import type {
 } from "./types";
 
 const qualityOptions: ImageQuality[] = ["VGA", "SVGA", "WXGA", "HD", "FullHD", "4K"];
+const qualityLabels: Record<ImageQuality, string> = {
+  VGA: "VGA (640 x 480)",
+  SVGA: "SVGA (800 x 600)",
+  WXGA: "WXGA (1280 x 800)",
+  HD: "HD (1280 x 720)",
+  FullHD: "FullHD (1920 x 1080)",
+  "4K": "4K (3840 x 2160)"
+};
 
 const emptyForm: CameraFormValues = {
   camera_name: "",
@@ -973,7 +981,7 @@ function CameraSettingScreen({
                 <td>{camera.address ?? "-"}</td>
                 <td>BASIC</td>
                 <td>{camera.capture_interval_minutes}分</td>
-                <td>{camera.image_quality}</td>
+                <td>{qualityLabels[camera.image_quality]}</td>
                 <td>{camera.retention_days ?? "-"}日</td>
                 <td><span className={`status ${camera.last_capture_status ?? "not_yet"}`}>{statusLabel(camera.last_capture_status)}</span></td>
                 <td>{formatDateTime(camera.last_capture_at)}</td>
@@ -1023,7 +1031,7 @@ function CameraFormScreen({
     if (!values.camera_name.trim()) return "カメラ名は必須です";
     if (!/^https?:\/\//.test(values.address)) return "アドレスはHTTPまたはHTTPS形式で入力してください";
     if (!values.login_id.trim()) return "IDは必須です";
-    if (!values.password.trim()) return "パスワードは必須です";
+    if (!camera && !values.password.trim()) return "パスワードは必須です";
     if (values.capture_interval_minutes < 1) return "取得間隔は1分以上で入力してください";
     if (values.retention_days < 1) return "保存期間は1日以上で入力してください";
     return "";
@@ -1057,21 +1065,33 @@ function CameraFormScreen({
         </label>
         <label>
           <span>パスワード</span>
-          <input value={values.password} type="password" maxLength={1024} placeholder="カメラ接続用パスワード" onChange={(event) => update("password", event.target.value)} />
+          <input
+            value={values.password}
+            type="password"
+            maxLength={1024}
+            placeholder={camera ? "変更する場合のみ入力" : "カメラ接続用パスワード"}
+            onChange={(event) => update("password", event.target.value)}
+          />
         </label>
         <label>
           <span>取得間隔</span>
-          <input value={values.capture_interval_minutes} type="number" min={1} onChange={(event) => update("capture_interval_minutes", Number(event.target.value))} />
+          <div className="unit-input">
+            <input value={values.capture_interval_minutes} type="number" min={1} onChange={(event) => update("capture_interval_minutes", Number(event.target.value))} />
+            <span>分</span>
+          </div>
         </label>
         <label>
           <span>保存画質</span>
           <select value={values.image_quality} onChange={(event) => update("image_quality", event.target.value as ImageQuality)}>
-            {qualityOptions.map((quality) => <option key={quality} value={quality}>{quality}</option>)}
+            {qualityOptions.map((quality) => <option key={quality} value={quality}>{qualityLabels[quality]}</option>)}
           </select>
         </label>
         <label>
           <span>保存期間</span>
-          <input value={values.retention_days} type="number" min={1} onChange={(event) => update("retention_days", Number(event.target.value))} />
+          <div className="unit-input">
+            <input value={values.retention_days} type="number" min={1} onChange={(event) => update("retention_days", Number(event.target.value))} />
+            <span>日</span>
+          </div>
         </label>
       </div>
       {formError && <div className="error-box">{formError}</div>}

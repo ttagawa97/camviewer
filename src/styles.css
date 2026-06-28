@@ -96,6 +96,21 @@ label span {
   font-weight: 700;
 }
 
+.unit-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.unit-input span {
+  margin: 0;
+  min-width: 1.5em;
+  color: #52625e;
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .login-shell {
   display: grid;
   min-height: 100vh;
