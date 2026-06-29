@@ -8,6 +8,7 @@ export function SiteSelectScreen({
   onSelect,
   onBackCompany,
   onAdd,
+  onManageUsers,
   onDelete
 }: {
   sites: Site[];
@@ -16,6 +17,7 @@ export function SiteSelectScreen({
   onSelect: (site: Site) => void;
   onBackCompany: () => void;
   onAdd: () => void;
+  onManageUsers: (site: Site) => void;
   onDelete: (site: Site) => void;
 }) {
   return (
@@ -36,6 +38,8 @@ export function SiteSelectScreen({
       onBack={canBackToCompany ? onBackCompany : undefined}
       actionLabel="現場追加"
       onAction={onAdd}
+      selectedActionLabel="ユーザー管理"
+      onSelectedAction={onManageUsers}
       deleteLabel="現場削除"
       onDelete={onDelete}
     />

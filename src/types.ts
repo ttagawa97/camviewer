@@ -5,6 +5,7 @@ export type Screen =
   | "companyForm"
   | "siteSelect"
   | "siteForm"
+  | "userManagement"
   | "thumbnail"
   | "cameraSetting"
   | "cameraForm"
@@ -22,6 +23,15 @@ export interface User {
   site_id: string | null;
   initial_screen?: string;
   permissions?: Record<string, boolean>;
+}
+
+export interface UserFormValues {
+  login_id: string;
+  user_name: string;
+  password: string;
+  role: Role;
+  company_id: string | null;
+  site_id: string | null;
 }
 
 export interface Company {

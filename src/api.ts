@@ -8,7 +8,8 @@ import type {
   LatestImage,
   SiteFormValues,
   Site,
-  User
+  User,
+  UserFormValues
 } from "./types";
 
 interface ApiEnvelope<T> {
@@ -23,8 +24,10 @@ let accessToken = localStorage.getItem("camviewer.accessToken") ?? "";
 
 interface ApiUserRole {
   role?: User["role"];
-  company?: string | null;
-  site?: string | null;
+  company?: string | number | null;
+  company_id?: string | number | null;
+  site?: string | number | null;
+  site_id?: string | number | null;
 }
 
 interface ApiUser {
@@ -122,8 +125,8 @@ function normalizeUser(user: User | ApiUser): User {
     login_id: user.username,
     user_name: [user.last_name, user.first_name].filter(Boolean).join(" ") || user.username,
     role: user.role?.role ?? "general_user",
-    company_id: user.role?.company ?? null,
-    site_id: user.role?.site ?? null
+    company_id: user.role?.company_id != null ? String(user.role.company_id) : user.role?.company != null ? String(user.role.company) : null,
+    site_id: user.role?.site_id != null ? String(user.role.site_id) : user.role?.site != null ? String(user.role.site) : null
   };
 }
 
@@ -210,6 +213,32 @@ export const api = {
     }),
 
   deleteSite: (siteId: string) => request(`/sites/${siteId}/`, { method: "DELETE" }),
+
+  users: (companyId?: string | null, siteId?: string | null) => {
+    const params = new URLSearchParams({ page: "1", page_size: "100" });
+    if (companyId) params.set("company_id", companyId);
+    if (siteId) params.set("site_id", siteId);
+    return request<{ users?: (User | ApiUser)[]; results?: (User | ApiUser)[] } | (User | ApiUser)[]>(
+      `/users/?${params.toString()}`
+    ).then((data) => {
+      const rows = Array.isArray(data) ? data : data.users ?? data.results ?? [];
+      return rows.map(normalizeUser);
+    });
+  },
+
+  createUser: (values: UserFormValues) =>
+    request<User | ApiUser>("/users/", {
+      method: "POST",
+      body: JSON.stringify(values)
+    }).then(normalizeUser),
+
+  updateUser: (userId: string, values: UserFormValues) =>
+    request<User | ApiUser>(`/users/${userId}/`, {
+      method: "PUT",
+      body: JSON.stringify(values)
+    }).then(normalizeUser),
+
+  deleteUser: (userId: string) => request(`/users/${userId}/`, { method: "DELETE" }),
 
   cameras: (companyId?: string | null, siteId?: string | null, keyword = "") => {
     const params = new URLSearchParams();

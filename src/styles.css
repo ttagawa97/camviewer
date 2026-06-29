@@ -671,6 +671,38 @@ tbody tr:hover {
   grid-column: 1 / -1;
 }
 
+.user-management {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.user-management-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 16px;
+  min-height: 0;
+}
+
+.user-management-layout .table-wrap {
+  min-height: 0;
+}
+
+.user-form {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  border: 1px solid #d7dfdc;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 14px;
+}
+
+.user-form h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
 .latest-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

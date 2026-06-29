@@ -6,12 +6,14 @@ export function CompanySelectScreen({
   onSearch,
   onSelect,
   onAdd,
+  onManageUsers,
   onDelete
 }: {
   companies: Company[];
   onSearch: (keyword?: string) => void;
   onSelect: (company: Company) => void;
   onAdd: () => void;
+  onManageUsers: (company: Company) => void;
   onDelete: (company: Company) => void;
 }) {
   return (
@@ -30,6 +32,8 @@ export function CompanySelectScreen({
       onSelect={onSelect}
       actionLabel="企業追加"
       onAction={onAdd}
+      selectedActionLabel="ユーザー管理"
+      onSelectedAction={onManageUsers}
       deleteLabel="企業削除"
       onDelete={onDelete}
     />

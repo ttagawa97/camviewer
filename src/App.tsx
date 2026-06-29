@@ -7,6 +7,7 @@ import { useCompanies } from "./hooks/useCompanies";
 import { useImages } from "./hooks/useImages";
 import { useOperationStatus } from "./hooks/useOperationStatus";
 import { useSites } from "./hooks/useSites";
+import { useUsers } from "./hooks/useUsers";
 import { mock, mockLogin, roleLabel } from "./mock";
 import { CameraFormScreen } from "./screens/CameraFormScreen";
 import { CameraSettingScreen } from "./screens/CameraSettingScreen";
@@ -17,6 +18,7 @@ import { MultiLatestScreen } from "./screens/MultiLatestScreen";
 import { SiteFormScreen } from "./screens/SiteFormScreen";
 import { SiteSelectScreen } from "./screens/SiteSelectScreen";
 import { ThumbnailScreen } from "./screens/ThumbnailScreen";
+import { UserManagementScreen } from "./screens/UserManagementScreen";
 import { initialScreenFor, loadStoredUser, loadStoredView, storeUser, storeView } from "./storage";
 import type {
   Camera,
@@ -27,6 +29,10 @@ import type {
   Site,
   User
 } from "./types";
+
+type UserManagementContext =
+  | { scope: "company"; company: Company | null; site: null }
+  | { scope: "site"; company: Company | null; site: Site };
 
 export default function App() {
   return (
@@ -53,6 +59,9 @@ function AppContent() {
   const [checkedCameraIds, setCheckedCameraIds] = useState<string[]>(() => initialStoredView?.checkedCameraIds ?? []);
   const [activeImage, setActiveImage] = useState<CapturedImage | LatestImage | null>(null);
   const [editingCameraId, setEditingCameraId] = useState<string | null>(() => initialStoredView?.editingCameraId ?? null);
+  const [userManagementContext, setUserManagementContext] = useState<UserManagementContext | null>(
+    () => initialStoredView?.userManagementContext as UserManagementContext | null ?? null
+  );
   const { toast, error, loading, withLoading, showToast } = useOperationStatus();
 
   const canManageCameras = user?.role === "system_admin" || user?.role === "company_admin" || user?.role === "site_admin";
@@ -156,6 +165,12 @@ function AppContent() {
     initialSelectedDate: initialStoredView?.selectedDate ?? ""
   });
 
+  const { managedUsers, loadUsers, saveUser, deleteUser } = useUsers({
+    useMock,
+    withLoading,
+    showToast
+  });
+
   const selectedCompanyName = selectedCompany?.company_name ?? (user?.company_id ? companies.find((item) => item.company_id === user.company_id)?.company_name : "");
   const selectedSiteName = selectedSite?.site_name ?? (user?.site_id ? sites.find((item) => item.site_id === user.site_id)?.site_name : "");
 
@@ -167,6 +182,7 @@ function AppContent() {
     if (selectedCompanyName) items.push(selectedCompanyName);
     if (screen === "siteSelect") items.push("現場選択");
     if (screen === "siteForm") items.push("現場選択", "現場追加");
+    if (screen === "userManagement") items.push(userManagementContext?.scope === "site" ? "現場選択" : "企業選択", "ユーザー管理");
 
     if (["thumbnail", "cameraSetting", "cameraForm", "multiLatest"].includes(screen) && selectedSiteName) items.push(selectedSiteName);
     if (screen === "thumbnail") items.push("カメラ画像");
@@ -174,7 +190,7 @@ function AppContent() {
     if (screen === "cameraForm") items.push("カメラ画像", "カメラ設定", editingCameraId ? "カメラ再設定" : "カメラ追加");
     if (screen === "multiLatest") items.push("カメラ画像", "複数カメラ最新画像");
     return items.join(" > ");
-  }, [editingCameraId, screen, selectedCompanyName, selectedSiteName]);
+  }, [editingCameraId, screen, selectedCompanyName, selectedSiteName, userManagementContext?.scope]);
 
   const goCompanySelect = () => {
     setSelectedCompany(null);
@@ -199,6 +215,22 @@ function AppContent() {
     setSites([]);
     setCameras([]);
     setScreen("siteSelect");
+  };
+
+  const openCompanyUserManagement = (company: Company) => {
+    setUserManagementContext({ scope: "company", company: user?.role === "system_admin" ? null : company, site: null });
+    setScreen("userManagement");
+  };
+
+  const openSiteUserManagement = (site: Site) => {
+    const company = selectedCompany ?? companies.find((item) => item.company_id === site.company_id) ?? null;
+    setUserManagementContext({ scope: "site", company, site });
+    setScreen("userManagement");
+  };
+
+  const closeUserManagement = () => {
+    setScreen(userManagementContext?.scope === "site" ? "siteSelect" : "companySelect");
+    setUserManagementContext(null);
   };
 
   const selectSite = (site: Site) => {
@@ -252,11 +284,12 @@ function AppContent() {
       selectedCompany,
       selectedSite,
       selectedCamera,
+      userManagementContext,
       checkedCameraIds,
       selectedDate,
       editingCameraId
     });
-  }, [checkedCameraIds, editingCameraId, screen, selectedCamera, selectedCompany, selectedDate, selectedSite, user]);
+  }, [checkedCameraIds, editingCameraId, screen, selectedCamera, selectedCompany, selectedDate, selectedSite, user, userManagementContext]);
 
   useEffect(() => {
     if (!authChecked || !user) return;
@@ -264,6 +297,17 @@ function AppContent() {
     if (screen === "siteSelect" || screen === "thumbnail" || screen === "cameraSetting" || screen === "cameraForm") void loadSites(contextCompanyId);
     if (screen === "thumbnail" || screen === "cameraSetting" || screen === "cameraForm") void loadCameras();
   }, [authChecked, contextCompanyId, loadCameras, loadCompanies, loadSites, screen, user]);
+
+  useEffect(() => {
+    if (!authChecked || !user || screen !== "userManagement" || !userManagementContext) return;
+    const companyId = userManagementContext.scope === "site" ? userManagementContext.site.company_id : userManagementContext.company?.company_id ?? null;
+    const siteId = userManagementContext.scope === "site" ? userManagementContext.site.site_id : null;
+    void loadUsers(companyId, siteId);
+    if (userManagementContext.scope === "company") {
+      void loadCompanies();
+      void loadSites(companyId);
+    }
+  }, [authChecked, loadCompanies, loadSites, loadUsers, screen, user, userManagementContext]);
 
   useEffect(() => {
     if (screen === "thumbnail") void loadDatesAndImages(selectedCamera);
@@ -352,6 +396,7 @@ function AppContent() {
           onSearch={loadCompanies}
           onSelect={selectCompany}
           onAdd={() => setScreen("companyForm")}
+          onManageUsers={openCompanyUserManagement}
           onDelete={deleteCompany}
         />
       )}
@@ -372,7 +417,23 @@ function AppContent() {
           onSelect={selectSite}
           onBackCompany={goCompanySelect}
           onAdd={() => setScreen("siteForm")}
+          onManageUsers={openSiteUserManagement}
           onDelete={deleteSite}
+        />
+      )}
+
+      {screen === "userManagement" && userManagementContext && (
+        <UserManagementScreen
+          title="ユーザー管理"
+          company={userManagementContext.company}
+          site={userManagementContext.site}
+          companies={companies}
+          sites={sites}
+          users={managedUsers}
+          allowedRoles={userManagementContext.scope === "company" ? ["system_admin", "company_admin", "site_admin", "general_user"] : ["site_admin", "general_user"]}
+          onSave={saveUser}
+          onDelete={deleteUser}
+          onBack={closeUserManagement}
         />
       )}
 
@@ -444,7 +505,7 @@ function AppContent() {
         />
       )}
 
-      {!["companySelect", "companyForm", "siteSelect", "siteForm", "thumbnail", "cameraSetting", "cameraForm", "multiLatest"].includes(screen) && (
+      {!["companySelect", "companyForm", "siteSelect", "siteForm", "userManagement", "thumbnail", "cameraSetting", "cameraForm", "multiLatest"].includes(screen) && (
         <section className="content-panel">
           <div className="empty-state">画面を表示できませんでした</div>
         </section>
@@ -462,6 +523,7 @@ function screenTitle(screen: Screen, editingCameraId: string | null) {
     companyForm: "企業追加",
     siteSelect: "現場選択",
     siteForm: "現場追加",
+    userManagement: "ユーザー管理",
     thumbnail: "カメラ画像",
     cameraSetting: "カメラ設定",
     cameraForm: editingCameraId ? "カメラ再設定" : "カメラ追加",

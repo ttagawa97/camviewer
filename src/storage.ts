@@ -9,6 +9,7 @@ export interface StoredView {
   selectedCompany: Company | null;
   selectedSite: Site | null;
   selectedCamera: Camera | null;
+  userManagementContext: { scope: "company" | "site"; company: Company | null; site: Site | null } | null;
   checkedCameraIds: string[];
   selectedDate: string;
   editingCameraId: string | null;
@@ -20,6 +21,7 @@ const screens: Screen[] = [
   "companyForm",
   "siteSelect",
   "siteForm",
+  "userManagement",
   "thumbnail",
   "cameraSetting",
   "cameraForm",
@@ -53,6 +55,7 @@ export function loadStoredView(userId?: string | null): StoredView | null {
       selectedCompany: view.selectedCompany ?? null,
       selectedSite: view.selectedSite ?? null,
       selectedCamera: view.selectedCamera ?? null,
+      userManagementContext: view.userManagementContext ?? null,
       checkedCameraIds: Array.isArray(view.checkedCameraIds) ? view.checkedCameraIds : [],
       selectedDate: typeof view.selectedDate === "string" ? view.selectedDate : "",
       editingCameraId: typeof view.editingCameraId === "string" ? view.editingCameraId : null

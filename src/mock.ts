@@ -1,4 +1,4 @@
-import type { AvailableDate, Camera, CapturedImage, Company, LatestImage, Role, Site, User } from "./types";
+import type { AvailableDate, Camera, CapturedImage, Company, LatestImage, Role, Site, User, UserFormValues } from "./types";
 
 const users: Record<string, User> = {
   admin: {
@@ -41,6 +41,7 @@ const users: Record<string, User> = {
 
 let companySequence = 3;
 let siteSequence = 4;
+let userSequence = 5;
 
 const companies: Company[] = [
   { company_id: "company_1", company_name: "A社", status: "active", site_count: 2, camera_count: 4 },
@@ -152,6 +153,42 @@ export const mock = {
     const company = companies.find((item) => item.company_id === companyId);
     if (company) company.site_count = (company.site_count ?? 0) + 1;
     return site;
+  },
+  users: (companyId?: string | null, siteId?: string | null) =>
+    Object.values(users).filter((item) => {
+      if (siteId) return item.site_id === siteId;
+      if (companyId) return item.company_id === companyId || item.role === "system_admin";
+      return true;
+    }),
+  createUser: (values: UserFormValues): User => {
+    const user: User = {
+      user_id: `user_${userSequence++}`,
+      login_id: values.login_id,
+      user_name: values.user_name,
+      role: values.role,
+      company_id: values.company_id,
+      site_id: values.site_id
+    };
+    users[user.login_id] = user;
+    return user;
+  },
+  updateUser: (userId: string, values: UserFormValues): User => {
+    const currentKey = Object.entries(users).find(([, user]) => user.user_id === userId)?.[0] ?? values.login_id;
+    const user: User = {
+      user_id: userId,
+      login_id: values.login_id,
+      user_name: values.user_name,
+      role: values.role,
+      company_id: values.company_id,
+      site_id: values.site_id
+    };
+    if (currentKey !== values.login_id) delete users[currentKey];
+    users[values.login_id] = user;
+    return user;
+  },
+  deleteUser: (userId: string) => {
+    const key = Object.entries(users).find(([, user]) => user.user_id === userId)?.[0];
+    if (key) delete users[key];
   },
   cameras: (_companyId?: string | null, siteId?: string | null, keyword = "") =>
     cameras.filter((item) => (!siteId || item.site_id === siteId) && item.camera_name.includes(keyword)),

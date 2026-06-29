@@ -13,6 +13,8 @@ export function SelectionTable<T extends object>({
   onBack,
   actionLabel,
   onAction,
+  selectedActionLabel,
+  onSelectedAction,
   deleteLabel,
   onDelete
 }: {
@@ -27,6 +29,8 @@ export function SelectionTable<T extends object>({
   onBack?: () => void;
   actionLabel?: string;
   onAction?: () => void;
+  selectedActionLabel?: string;
+  onSelectedAction?: (row: T) => void;
   deleteLabel?: string;
   onDelete?: (row: T) => void;
 }) {
@@ -73,6 +77,11 @@ export function SelectionTable<T extends object>({
       </div>
       <div className="footer-actions">
         {backLabel && <button className="ghost" onClick={onBack}>{backLabel}</button>}
+        {selectedActionLabel && onSelectedAction && (
+          <button disabled={!selectedRow} onClick={() => selectedRow && onSelectedAction(selectedRow)}>
+            {selectedActionLabel}
+          </button>
+        )}
         {deleteLabel && onDelete && (
           <button className="ghost danger" disabled={!selectedRow} onClick={() => selectedRow && onDelete(selectedRow)}>
             {deleteLabel}
