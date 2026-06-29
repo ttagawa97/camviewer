@@ -41,7 +41,6 @@ export function useUsers({
 
   const deleteUser = useCallback(
     async (user: User) => {
-      if (!window.confirm(`${user.user_name} を削除します。よろしいですか？`)) return;
       await withLoading(async () => {
         if (useMock) mock.deleteUser(user.user_id);
         else await api.deleteUser(user.user_id);

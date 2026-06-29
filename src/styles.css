@@ -678,9 +678,7 @@ tbody tr:hover {
 }
 
 .user-management-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 16px;
+  display: block;
   min-height: 0;
 }
 
@@ -761,6 +759,35 @@ tbody tr:hover {
   border-radius: 8px;
   background: #ffffff;
   padding: 16px;
+}
+
+.user-edit-modal {
+  width: min(420px, 94vw);
+  max-height: 92vh;
+  overflow: auto;
+}
+
+.user-edit-modal .user-form {
+  box-shadow: 0 18px 44px rgba(9, 18, 16, 0.24);
+}
+
+.confirm-modal {
+  width: min(420px, 94vw);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 18px;
+  box-shadow: 0 18px 44px rgba(9, 18, 16, 0.24);
+}
+
+.confirm-modal h3 {
+  margin: 0 0 12px;
+  font-size: 17px;
+}
+
+.confirm-modal p {
+  margin: 0;
+  color: #34423e;
+  line-height: 1.6;
 }
 
 .image-modal img {
