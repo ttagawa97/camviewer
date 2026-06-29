@@ -139,12 +139,14 @@ function normalizeCompany(company: Company | { id?: number | string; name?: stri
   };
 }
 
-function normalizeSite(site: Site | { id?: number | string; company?: string; name?: string; is_active?: boolean; camera_count?: number }): Site {
+function normalizeSite(
+  site: Site | { id?: number | string; company?: string | number | null; company_id?: string | number | null; name?: string; is_active?: boolean; camera_count?: number }
+): Site {
   if ("site_id" in site) return site;
 
   return {
     site_id: String(site.id ?? ""),
-    company_id: site.company ?? "",
+    company_id: String(site.company_id ?? site.company ?? ""),
     site_name: site.name ?? "",
     status: site.is_active === false ? "inactive" : "active",
     camera_count: site.camera_count,
