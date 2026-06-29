@@ -94,7 +94,7 @@ export function ThumbnailScreen(props: {
               disabled={props.availableDates.length === 0}
               onClick={() => setIsCalendarOpen((current) => !current)}
             >
-              {props.selectedDate ? formatDateKeyWithWeek(props.selectedDate) : "選択可能な画像日付がありません"}
+              {props.selectedDate ? formatDateKeyWithWeek(props.selectedDate) : "日付なし"}
             </button>
             {isCalendarOpen && (
               <div className="calendar-picker">
@@ -123,15 +123,20 @@ export function ThumbnailScreen(props: {
             )}
           </div>
         </div>
-        <div className="thumbnail-grid">
-          {props.images.map((image) => (
-            <button className="thumbnail" key={image.image_id} onDoubleClick={() => props.onOpenImage(image)}>
-              <img src={image.thumbnail_url} alt={`${image.camera_name ?? ""} ${formatDateTime(image.captured_at)}`} />
-              <span>{formatDateTime(image.captured_at)}</span>
-            </button>
-          ))}
+        <div className="thumbnail-scroll">
+          {props.images.length === 0 ? (
+            <div className="thumbnail-empty-state">選択した日付の画像はありません</div>
+          ) : (
+            <div className="thumbnail-grid">
+              {props.images.map((image) => (
+                <button className="thumbnail" key={image.image_id} onDoubleClick={() => props.onOpenImage(image)}>
+                  <img src={image.thumbnail_url} alt={`${image.camera_name ?? ""} ${formatDateTime(image.captured_at)}`} />
+                  <span>{formatDateTime(image.captured_at)}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-        {props.images.length === 0 && <div className="empty-state">選択した日付の画像はありません</div>}
       </section>
     </section>
   );

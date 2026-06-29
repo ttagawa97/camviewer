@@ -149,7 +149,11 @@ label span {
 }
 
 .app-shell {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   padding: 18px 22px 28px;
 }
 
@@ -316,14 +320,16 @@ tbody tr:hover {
 
 .split-layout {
   display: grid;
+  flex: 1 1 auto;
   grid-template-columns: 310px minmax(0, 1fr);
-  min-height: calc(100vh - 138px);
+  min-height: 0;
   overflow: hidden;
 }
 
 .camera-pane {
   display: flex;
   flex-direction: column;
+  min-height: 0;
   gap: 14px;
   border-right: 1px solid #dbe4e1;
   padding: 16px;
@@ -342,7 +348,9 @@ tbody tr:hover {
 
 .camera-list {
   display: grid;
+  align-content: start;
   gap: 8px;
+  min-height: 0;
   overflow: auto;
   padding-right: 2px;
 }
@@ -390,8 +398,11 @@ tbody tr:hover {
 }
 
 .image-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   padding: 16px;
-  overflow: auto;
+  overflow: hidden;
 }
 
 .image-pane .toolbar {
@@ -422,6 +433,8 @@ tbody tr:hover {
   display: block;
   width: 190px;
   padding: 0 30px 0 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: left;
   white-space: nowrap;
 }
@@ -538,10 +551,35 @@ tbody tr:hover {
   opacity: 0.35;
 }
 
+.thumbnail-scroll {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid #d9e1df;
+  border-radius: 6px;
+  background: #fbfdfc;
+  overflow: auto;
+  padding: 12px;
+}
+
 .thumbnail-grid {
+  flex: 1;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  align-content: start;
   gap: 12px;
+  min-height: 100%;
+}
+
+.thumbnail-empty-state {
+  display: grid;
+  min-height: 140px;
+  place-items: center;
+  border: 1px dashed #bac7c3;
+  border-radius: 6px;
+  background: #f3f7f6;
+  color: #61716d;
 }
 
 .thumbnail {
