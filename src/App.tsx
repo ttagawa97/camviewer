@@ -1,3 +1,6 @@
+import { DayPicker } from "@daypicker/react";
+import { ja } from "@daypicker/react/locale";
+import "@daypicker/react/style.css";
 import { Component, FormEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api";
 import { mock, mockLogin, roleLabel } from "./mock";
@@ -47,6 +50,30 @@ const emptySiteForm: SiteFormValues = {
 };
 
 const storedUserKey = "camviewer.user";
+const storedViewKey = "camviewer.view";
+
+interface StoredView {
+  user_id: string;
+  screen: Screen;
+  selectedCompany: Company | null;
+  selectedSite: Site | null;
+  selectedCamera: Camera | null;
+  checkedCameraIds: string[];
+  selectedDate: string;
+  editingCameraId: string | null;
+}
+
+const screens: Screen[] = [
+  "login",
+  "companySelect",
+  "companyForm",
+  "siteSelect",
+  "siteForm",
+  "thumbnail",
+  "cameraSetting",
+  "cameraForm",
+  "multiLatest"
+];
 
 function loadStoredUser(): User | null {
   try {
@@ -61,6 +88,33 @@ function loadStoredUser(): User | null {
 function storeUser(user: User | null) {
   if (user) localStorage.setItem(storedUserKey, JSON.stringify(user));
   else localStorage.removeItem(storedUserKey);
+}
+
+function loadStoredView(userId?: string | null): StoredView | null {
+  if (!userId) return null;
+  try {
+    const raw = localStorage.getItem(storedViewKey);
+    const view = raw ? (JSON.parse(raw) as Partial<StoredView>) : null;
+    if (!view || view.user_id !== userId || !screens.includes(view.screen as Screen) || view.screen === "login") return null;
+    return {
+      user_id: userId,
+      screen: view.screen as Screen,
+      selectedCompany: view.selectedCompany ?? null,
+      selectedSite: view.selectedSite ?? null,
+      selectedCamera: view.selectedCamera ?? null,
+      checkedCameraIds: Array.isArray(view.checkedCameraIds) ? view.checkedCameraIds : [],
+      selectedDate: typeof view.selectedDate === "string" ? view.selectedDate : "",
+      editingCameraId: typeof view.editingCameraId === "string" ? view.editingCameraId : null
+    };
+  } catch {
+    localStorage.removeItem(storedViewKey);
+    return null;
+  }
+}
+
+function storeView(view: StoredView | null) {
+  if (view) localStorage.setItem(storedViewKey, JSON.stringify(view));
+  else localStorage.removeItem(storedViewKey);
 }
 
 function initialScreenFor(user: User): Screen {
@@ -78,6 +132,26 @@ function formatDateTime(value?: string | null) {
     timeStyle: "medium",
     timeZone: "Asia/Tokyo"
   }).format(date);
+}
+
+function parseDateKey(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return undefined;
+  return new Date(year, month - 1, day);
+}
+
+function toDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatDateKeyWithWeek(value: string) {
+  const date = parseDateKey(value);
+  if (!date) return value;
+  const week = new Intl.DateTimeFormat("ja-JP", { weekday: "short" }).format(date);
+  return `${value}(${week})`;
 }
 
 function statusLabel(status?: string | null) {
@@ -125,24 +199,26 @@ function AppContent() {
   const [useMock] = useState(() => import.meta.env.VITE_USE_MOCK === "true");
   const authCheckVersion = useRef(0);
   const [user, setUser] = useState<User | null>(() => loadStoredUser());
+  const initialStoredView = useMemo(() => loadStoredView(user?.user_id), []);
   const [authChecked, setAuthChecked] = useState(() => useMock || !loadStoredUser());
   const [screen, setScreen] = useState<Screen>(() => {
     const storedUser = loadStoredUser();
-    return storedUser ? initialScreenFor(storedUser) : "login";
+    const storedView = loadStoredView(storedUser?.user_id);
+    return storedUser ? storedView?.screen ?? initialScreenFor(storedUser) : "login";
   });
-  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
-  const [selectedSite, setSelectedSite] = useState<Site | null>(null);
-  const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null);
-  const [checkedCameraIds, setCheckedCameraIds] = useState<string[]>([]);
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(() => initialStoredView?.selectedCompany ?? null);
+  const [selectedSite, setSelectedSite] = useState<Site | null>(() => initialStoredView?.selectedSite ?? null);
+  const [selectedCamera, setSelectedCamera] = useState<Camera | null>(() => initialStoredView?.selectedCamera ?? null);
+  const [checkedCameraIds, setCheckedCameraIds] = useState<string[]>(() => initialStoredView?.checkedCameraIds ?? []);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [availableDates, setAvailableDates] = useState<AvailableDate[]>([]);
-  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedDate, setSelectedDate] = useState(() => initialStoredView?.selectedDate ?? "");
   const [images, setImages] = useState<CapturedImage[]>([]);
   const [latestImages, setLatestImages] = useState<LatestImage[]>([]);
   const [activeImage, setActiveImage] = useState<CapturedImage | LatestImage | null>(null);
-  const [editingCameraId, setEditingCameraId] = useState<string | null>(null);
+  const [editingCameraId, setEditingCameraId] = useState<string | null>(() => initialStoredView?.editingCameraId ?? null);
   const [toast, setToast] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -237,6 +313,7 @@ function AppContent() {
       .catch(() => {
         if (cancelled || version !== authCheckVersion.current) return;
         storeUser(null);
+        storeView(null);
         setUser(null);
         setScreen("login");
         setSelectedCompany(null);
@@ -252,6 +329,20 @@ function AppContent() {
       cancelled = true;
     };
   }, [useMock]);
+
+  useEffect(() => {
+    if (!user || screen === "login") return;
+    storeView({
+      user_id: user.user_id,
+      screen,
+      selectedCompany,
+      selectedSite,
+      selectedCamera,
+      checkedCameraIds,
+      selectedDate,
+      editingCameraId
+    });
+  }, [checkedCameraIds, editingCameraId, screen, selectedCamera, selectedCompany, selectedDate, selectedSite, user]);
 
   const loadCompanies = useCallback(
     (keyword = "") =>
@@ -299,9 +390,9 @@ function AppContent() {
 
   useEffect(() => {
     if (!authChecked || !user) return;
-    if (screen === "companySelect") void loadCompanies();
-    if (screen === "siteSelect") void loadSites(contextCompanyId);
-    if (screen === "thumbnail" || screen === "cameraSetting") void loadCameras();
+    if (screen === "companySelect" || screen === "siteForm") void loadCompanies();
+    if (screen === "siteSelect" || screen === "thumbnail" || screen === "cameraSetting" || screen === "cameraForm") void loadSites(contextCompanyId);
+    if (screen === "thumbnail" || screen === "cameraSetting" || screen === "cameraForm") void loadCameras();
   }, [authChecked, contextCompanyId, loadCameras, loadCompanies, loadSites, screen, user]);
 
   useEffect(() => {
@@ -356,6 +447,7 @@ function AppContent() {
       if (!useMock) await api.logout();
     } finally {
       storeUser(null);
+      storeView(null);
       setUser(null);
       setScreen("login");
       setSelectedCompany(null);
@@ -880,6 +972,33 @@ function ThumbnailScreen(props: {
   onBackSite?: () => void;
   onBackCompany?: () => void;
 }) {
+  const availableDateMap = useMemo(
+    () => new Map(props.availableDates.map((item) => [item.date, item])),
+    [props.availableDates]
+  );
+  const selectedCalendarDate = props.selectedDate ? parseDateKey(props.selectedDate) : undefined;
+  const defaultCalendarDate = selectedCalendarDate ?? parseDateKey(props.availableDates[0]?.date ?? "");
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const calendarDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isCalendarOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!calendarDropdownRef.current?.contains(event.target as Node)) setIsCalendarOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsCalendarOpen(false);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isCalendarOpen]);
+
   return (
     <section className="split-layout">
       <aside className="camera-pane">
@@ -914,15 +1033,45 @@ function ThumbnailScreen(props: {
 
       <section className="image-pane">
         <div className="toolbar">
-          <div>
+          <div className="camera-title-slot">
             <h2>{props.selectedCamera?.camera_name ?? "カメラ未選択"}</h2>
-            <p>{props.selectedDate || "選択可能な画像日付がありません"}</p>
           </div>
-          <select value={props.selectedDate} onChange={(event) => props.onDateChange(event.target.value)} disabled={props.availableDates.length === 0}>
-            {props.availableDates.map((item) => (
-              <option key={item.date} value={item.date}>{item.date} ({item.image_count})</option>
-            ))}
-          </select>
+          <div className="date-dropdown" ref={calendarDropdownRef}>
+            <button
+              className="date-dropdown-button"
+              type="button"
+              aria-expanded={isCalendarOpen}
+              disabled={props.availableDates.length === 0}
+              onClick={() => setIsCalendarOpen((current) => !current)}
+            >
+              {props.selectedDate ? formatDateKeyWithWeek(props.selectedDate) : "選択可能な画像日付がありません"}
+            </button>
+            {isCalendarOpen && (
+              <div className="calendar-picker">
+                <DayPicker
+                  key={`${props.selectedCamera?.camera_id ?? "no-camera"}-${props.availableDates[0]?.date ?? "no-date"}`}
+                  mode="single"
+                  locale={ja}
+                  selected={selectedCalendarDate}
+                  defaultMonth={defaultCalendarDate}
+                  disabled={(date) => !availableDateMap.has(toDateKey(date))}
+                  modifiers={{
+                    hasImages: (date) => availableDateMap.has(toDateKey(date))
+                  }}
+                  modifiersClassNames={{
+                    hasImages: "calendar-day-has-images"
+                  }}
+                  onSelect={(date) => {
+                    if (!date) return;
+                    const dateKey = toDateKey(date);
+                    if (!availableDateMap.has(dateKey)) return;
+                    props.onDateChange(dateKey);
+                    setIsCalendarOpen(false);
+                  }}
+                />
+              </div>
+            )}
+          </div>
         </div>
         <div className="thumbnail-grid">
           {props.images.map((image) => (
