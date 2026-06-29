@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { api } from "../api";
 import { mock } from "../mock";
 import type { Company, CompanyFormValues } from "../types";
@@ -19,11 +19,20 @@ export function useCompanies({
   onDeletedSelected: () => void;
 }) {
   const [companies, setCompanies] = useState<Company[]>([]);
+  const loadVersion = useRef(0);
 
   const loadCompanies = useCallback(
     (keyword = "") =>
       withLoading(async () => {
-        setCompanies(useMock ? mock.companies(keyword) : await api.companies(keyword));
+        const version = ++loadVersion.current;
+        const rows = useMock ? mock.companies(keyword) : await api.companies(keyword);
+        if (version !== loadVersion.current) return;
+        const normalizedKeyword = keyword.trim().toLowerCase();
+        setCompanies(
+          normalizedKeyword
+            ? rows.filter((company) => company.company_name.toLowerCase().includes(normalizedKeyword))
+            : rows
+        );
       }),
     [useMock, withLoading]
   );

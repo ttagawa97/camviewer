@@ -29,7 +29,13 @@ export function useSites({
         const version = ++loadVersion.current;
         const rows = useMock ? mock.sites(companyId, keyword) : await api.sites(companyId ?? undefined, keyword);
         if (version !== loadVersion.current) return;
-        setSites(companyId ? rows.filter((site) => site.company_id === companyId) : rows);
+        const normalizedKeyword = keyword.trim().toLowerCase();
+        const scopedRows = companyId ? rows.filter((site) => site.company_id === companyId) : rows;
+        setSites(
+          normalizedKeyword
+            ? scopedRows.filter((site) => site.site_name.toLowerCase().includes(normalizedKeyword))
+            : scopedRows
+        );
       }),
     [useMock, withLoading]
   );

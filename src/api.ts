@@ -180,13 +180,17 @@ export const api = {
 
   me: () => request<User | ApiUser>("/auth/me/").then(normalizeUser),
 
-  companies: (keyword = "") =>
-    request<{ companies?: Company[]; results?: Company[] } | Company[]>(
-      `/companies/?status=active&page=1&page_size=100${keyword ? `&keyword=${encodeURIComponent(keyword)}` : ""}`
-    ).then((data) => {
+  companies: (keyword = "") => {
+    const params = new URLSearchParams({ status: "active", page: "1", page_size: "100" });
+    if (keyword) {
+      params.set("keyword", keyword);
+      params.set("search", keyword);
+    }
+    return request<{ companies?: Company[]; results?: Company[] } | Company[]>(`/companies/?${params.toString()}`).then((data) => {
       const rows = Array.isArray(data) ? data : data.companies ?? data.results ?? [];
       return rows.map(normalizeCompany);
-    }),
+    });
+  },
 
   createCompany: (values: CompanyFormValues) =>
     request<{ company_id: string; company_name: string; status: string }>("/companies/", {
@@ -199,7 +203,10 @@ export const api = {
   sites: (companyId?: string, keyword = "") => {
     const params = new URLSearchParams({ status: "active", page: "1", page_size: "100" });
     if (companyId) params.set("company_id", companyId);
-    if (keyword) params.set("keyword", keyword);
+    if (keyword) {
+      params.set("keyword", keyword);
+      params.set("search", keyword);
+    }
     return request<{ sites?: Site[]; results?: Site[] } | Site[]>(`/sites/?${params.toString()}`).then((data) => {
       const rows = Array.isArray(data) ? data : data.sites ?? data.results ?? [];
       return rows.map(normalizeSite);

@@ -25,6 +25,7 @@ import type {
   CapturedImage,
   Company,
   LatestImage,
+  Role,
   Screen,
   Site,
   User
@@ -217,19 +218,27 @@ function AppContent() {
     setScreen("siteSelect");
   };
 
-  const openCompanyUserManagement = (company: Company) => {
-    setUserManagementContext({ scope: "company", company: user?.role === "system_admin" ? null : company, site: null });
-    setScreen("userManagement");
-  };
-
-  const openSiteUserManagement = (site: Site) => {
-    const company = selectedCompany ?? companies.find((item) => item.company_id === site.company_id) ?? null;
-    setUserManagementContext({ scope: "site", company, site });
+  const openHeaderUserManagement = () => {
+    if (user?.role === "system_admin") {
+      setUserManagementContext({ scope: "company", company: null, site: null });
+      setScreen("userManagement");
+      return;
+    }
+    if (user?.role !== "company_admin" || !user.company_id) return;
+    const company =
+      selectedCompany ??
+      companies.find((item) => item.company_id === user.company_id) ??
+      {
+        company_id: user.company_id,
+        company_name: selectedCompanyName || "所属企業",
+        status: "active" as const
+      };
+    setUserManagementContext({ scope: "company", company, site: null });
     setScreen("userManagement");
   };
 
   const closeUserManagement = () => {
-    setScreen(userManagementContext?.scope === "site" ? "siteSelect" : "companySelect");
+    setScreen(userManagementContext?.scope === "site" || user?.role === "company_admin" ? "siteSelect" : "companySelect");
     setUserManagementContext(null);
   };
 
@@ -369,6 +378,14 @@ function AppContent() {
     return <LoginScreen error={error} loading={loading} onLogin={handleLogin} />;
   }
 
+  const canManageUsers = user.role === "system_admin" || user.role === "company_admin";
+  const userManagementAllowedRoles: Role[] =
+    user.role === "system_admin"
+      ? userManagementContext?.scope === "site"
+        ? ["site_admin", "general_user"]
+        : ["system_admin", "company_admin", "site_admin", "general_user"]
+      : ["site_admin", "general_user"];
+
   return (
     <main className="app-shell">
       <header className="app-header">
@@ -378,6 +395,9 @@ function AppContent() {
           <p className="breadcrumb">{breadcrumb}</p>
         </div>
         <div className="header-actions">
+          {canManageUsers && screen !== "userManagement" && (
+            <button className="ghost" onClick={openHeaderUserManagement}>ユーザー管理</button>
+          )}
           <div className="user-chip">
             <strong>{user.user_name}</strong>
             <span>{roleLabel(user.role)}</span>
@@ -396,7 +416,6 @@ function AppContent() {
           onSearch={loadCompanies}
           onSelect={selectCompany}
           onAdd={() => setScreen("companyForm")}
-          onManageUsers={openCompanyUserManagement}
           onDelete={deleteCompany}
         />
       )}
@@ -417,7 +436,6 @@ function AppContent() {
           onSelect={selectSite}
           onBackCompany={goCompanySelect}
           onAdd={() => setScreen("siteForm")}
-          onManageUsers={openSiteUserManagement}
           onDelete={deleteSite}
         />
       )}
@@ -430,7 +448,7 @@ function AppContent() {
           companies={companies}
           sites={sites}
           users={managedUsers}
-          allowedRoles={userManagementContext.scope === "company" ? ["system_admin", "company_admin", "site_admin", "general_user"] : ["site_admin", "general_user"]}
+          allowedRoles={userManagementAllowedRoles}
           onSave={saveUser}
           onDelete={deleteUser}
           onBack={closeUserManagement}

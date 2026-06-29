@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatDateTime, statusLabel } from "../utils/format";
 
 export function SelectionTable<T extends object>({
@@ -35,6 +35,12 @@ export function SelectionTable<T extends object>({
   onDelete?: (row: T) => void;
 }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  useEffect(() => {
+    setSelectedIndex((current) => {
+      if (rows.length === 0) return 0;
+      return Math.min(current, rows.length - 1);
+    });
+  }, [rows.length]);
   const selectedRow = rows[selectedIndex] ?? null;
   const readCell = (row: T, key: string) => (row as Record<string, unknown>)[key];
 
