@@ -1,7 +1,15 @@
 import { useCallback, useRef, useState } from "react";
 import { api } from "../api";
 import { mock } from "../mock";
-import type { AvailableDate, Camera, CapturedImage, LatestImage } from "../types";
+import type { AvailableDate, Camera, CapturedImage, LatestImage, Pagination } from "../types";
+
+const thumbnailPageSize = 100;
+const emptyPagination: Pagination = {
+  page: 1,
+  page_size: thumbnailPageSize,
+  total_count: 0,
+  total_pages: 1
+};
 
 export function useImages({
   useMock,
@@ -21,8 +29,31 @@ export function useImages({
   const [availableDates, setAvailableDates] = useState<AvailableDate[]>([]);
   const [selectedDate, setSelectedDate] = useState(initialSelectedDate);
   const [images, setImages] = useState<CapturedImage[]>([]);
+  const [thumbnailPagination, setThumbnailPagination] = useState<Pagination>(emptyPagination);
   const [latestImages, setLatestImages] = useState<LatestImage[]>([]);
   const lastLoadedCameraId = useRef<string | null>(null);
+
+  const loadThumbnails = useCallback(
+    async (cameraId: string, date: string, page = 1) => {
+      if (useMock) {
+        const mockImages = mock.thumbnails(cameraId);
+        const start = (page - 1) * thumbnailPageSize;
+        setImages(mockImages.slice(start, start + thumbnailPageSize));
+        setThumbnailPagination({
+          page,
+          page_size: thumbnailPageSize,
+          total_count: mockImages.length,
+          total_pages: Math.max(1, Math.ceil(mockImages.length / thumbnailPageSize))
+        });
+        return;
+      }
+
+      const data = await api.thumbnails(cameraId, date, page, thumbnailPageSize);
+      setImages(data.images);
+      setThumbnailPagination(data.pagination);
+    },
+    [useMock]
+  );
 
   const loadDatesAndImages = useCallback(
     (camera: Camera | null) =>
@@ -31,6 +62,7 @@ export function useImages({
           setAvailableDates([]);
           setSelectedDate("");
           setImages([]);
+          setThumbnailPagination(emptyPagination);
           lastLoadedCameraId.current = null;
           return;
         }
@@ -41,17 +73,29 @@ export function useImages({
         const nextDate = isNewCamera ? latestDate : selectedDate || latestDate;
         lastLoadedCameraId.current = camera.camera_id;
         setSelectedDate(nextDate);
-        setImages(nextDate ? (useMock ? mock.thumbnails(camera.camera_id) : await api.thumbnails(camera.camera_id, nextDate)) : []);
+        if (nextDate) await loadThumbnails(camera.camera_id, nextDate, 1);
+        else {
+          setImages([]);
+          setThumbnailPagination(emptyPagination);
+        }
       }),
-    [contextCompanyId, contextSiteId, selectedDate, useMock, withLoading]
+    [contextCompanyId, contextSiteId, loadThumbnails, selectedDate, useMock, withLoading]
   );
 
   const changeDate = useCallback(
     async (date: string) => {
       setSelectedDate(date);
-      if (selectedCamera) setImages(useMock ? mock.thumbnails(selectedCamera.camera_id) : await api.thumbnails(selectedCamera.camera_id, date));
+      if (selectedCamera) await loadThumbnails(selectedCamera.camera_id, date, 1);
     },
-    [selectedCamera, useMock]
+    [loadThumbnails, selectedCamera]
+  );
+
+  const changeThumbnailPage = useCallback(
+    async (page: number) => {
+      if (!selectedCamera || !selectedDate) return;
+      await loadThumbnails(selectedCamera.camera_id, selectedDate, page);
+    },
+    [loadThumbnails, selectedCamera, selectedDate]
   );
 
   const refreshLatestImages = useCallback(
@@ -66,10 +110,12 @@ export function useImages({
     selectedDate,
     setSelectedDate,
     images,
+    thumbnailPagination,
     latestImages,
     setLatestImages,
     loadDatesAndImages,
     changeDate,
+    changeThumbnailPage,
     refreshLatestImages
   };
 }

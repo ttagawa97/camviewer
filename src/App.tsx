@@ -109,6 +109,7 @@ function AppContent() {
     loadCameras,
     saveCamera,
     deleteCamera,
+    deleteCameraImages,
     testSavedCamera,
     testCameraValues
   } = useCameras({
@@ -153,9 +154,11 @@ function AppContent() {
     availableDates,
     selectedDate,
     images,
+    thumbnailPagination,
     latestImages,
     loadDatesAndImages,
     changeDate,
+    changeThumbnailPage,
     refreshLatestImages
   } = useImages({
     useMock,
@@ -473,6 +476,7 @@ function AppContent() {
           selectedCamera={selectedCamera}
           selectedDate={selectedDate}
           availableDates={availableDates}
+          pagination={thumbnailPagination}
           checkedCameraIds={checkedCameraIds}
           canManageCameras={canManageCameras}
           onSelectCamera={setSelectedCamera}
@@ -480,6 +484,7 @@ function AppContent() {
             setCheckedCameraIds((ids) => (ids.includes(cameraId) ? ids.filter((id) => id !== cameraId) : [...ids, cameraId]))
           }
           onDateChange={changeDate}
+          onPageChange={changeThumbnailPage}
           onOpenImage={setActiveImage}
           onOpenSettings={() => setScreen("cameraSetting")}
           onOpenLatest={() => setScreen("multiLatest")}
@@ -500,6 +505,7 @@ function AppContent() {
             setScreen("cameraForm");
           }}
           onDelete={deleteCamera}
+          onDeleteImages={deleteCameraImages}
           onTest={testSavedCamera}
           onBack={() => setScreen("thumbnail")}
         />

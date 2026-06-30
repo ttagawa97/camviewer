@@ -12,6 +12,7 @@ export type Screen =
   | "multiLatest";
 export type Status = "active" | "inactive" | "deleted";
 export type CaptureStatus = "success" | "failed" | "not_yet";
+export type AiAnalysisStatus = "not_required" | "pending" | "processing" | "completed" | "error";
 export type ImageQuality = "VGA" | "SVGA" | "WXGA" | "HD" | "FullHD" | "4K";
 
 export interface User {
@@ -62,6 +63,7 @@ export interface Camera {
   capture_interval_minutes: number;
   image_quality: ImageQuality;
   retention_days?: number;
+  ai_text?: string | null;
   status: Status;
   last_capture_at?: string | null;
   last_capture_status?: CaptureStatus | null;
@@ -85,6 +87,15 @@ export interface CapturedImage {
   width?: number | null;
   height?: number | null;
   file_size_bytes?: number | null;
+  ai_analysis_status?: AiAnalysisStatus;
+  ai_response_text?: string | null;
+}
+
+export interface Pagination {
+  page: number;
+  page_size: number;
+  total_count: number;
+  total_pages: number;
 }
 
 export interface LatestImage {
@@ -108,6 +119,7 @@ export interface CameraFormValues {
   capture_interval_minutes: number;
   image_quality: ImageQuality;
   retention_days: number;
+  ai_text: string;
 }
 
 export interface CompanyFormValues {

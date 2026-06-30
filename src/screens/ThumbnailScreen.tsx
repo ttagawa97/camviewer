@@ -2,7 +2,7 @@ import { DayPicker } from "@daypicker/react";
 import { ja } from "@daypicker/react/locale";
 import "@daypicker/react/style.css";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { AvailableDate, Camera, CapturedImage } from "../types";
+import type { AvailableDate, Camera, CapturedImage, Pagination } from "../types";
 import { formatDateKeyWithWeek, formatDateTime, parseDateKey, statusLabel, toDateKey } from "../utils/format";
 
 export function ThumbnailScreen(props: {
@@ -11,11 +11,13 @@ export function ThumbnailScreen(props: {
   selectedCamera: Camera | null;
   selectedDate: string;
   availableDates: AvailableDate[];
+  pagination: Pagination;
   checkedCameraIds: string[];
   canManageCameras: boolean;
   onSelectCamera: (camera: Camera) => void;
   onToggleCamera: (cameraId: string) => void;
   onDateChange: (date: string) => void;
+  onPageChange: (page: number) => void;
   onOpenImage: (image: CapturedImage) => void;
   onOpenSettings: () => void;
   onOpenLatest: () => void;
@@ -132,8 +134,24 @@ export function ThumbnailScreen(props: {
                 <button className="thumbnail" key={image.image_id} onDoubleClick={() => props.onOpenImage(image)}>
                   <img src={image.thumbnail_url} alt={`${image.camera_name ?? ""} ${formatDateTime(image.captured_at)}`} />
                   <span>{formatDateTime(image.captured_at)}</span>
+                  {image.ai_response_text ? <span className="thumbnail-ai-text">{image.ai_response_text}</span> : null}
                 </button>
               ))}
+            </div>
+          )}
+          {props.pagination.total_pages > 1 && (
+            <div className="pagination">
+              <button type="button" disabled={props.pagination.page <= 1} onClick={() => props.onPageChange(props.pagination.page - 1)}>
+                前へ
+              </button>
+              <span>{props.pagination.page} / {props.pagination.total_pages}</span>
+              <button
+                type="button"
+                disabled={props.pagination.page >= props.pagination.total_pages}
+                onClick={() => props.onPageChange(props.pagination.page + 1)}
+              >
+                次へ
+              </button>
             </div>
           )}
         </div>

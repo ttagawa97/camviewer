@@ -7,6 +7,7 @@ export function CameraSettingScreen({
   onAdd,
   onEdit,
   onDelete,
+  onDeleteImages,
   onTest,
   onBack
 }: {
@@ -14,6 +15,7 @@ export function CameraSettingScreen({
   onAdd: () => void;
   onEdit: (camera: Camera) => void;
   onDelete: (cameraId: string) => void;
+  onDeleteImages: (camera: Camera) => void;
   onTest: (camera: Camera) => void;
   onBack: () => void;
 }) {
@@ -50,9 +52,10 @@ export function CameraSettingScreen({
                 <td><span className={`status ${camera.last_capture_status ?? "not_yet"}`}>{statusLabel(camera.last_capture_status)}</span></td>
                 <td>{formatDateTime(camera.last_capture_at)}</td>
                 <td className="row-actions">
-                  <button onClick={() => onEdit(camera)}>編集</button>
-                  <button onClick={() => onDelete(camera.camera_id)}>削除</button>
-                  <button onClick={() => onTest(camera)}>接続テスト</button>
+                  <button onClick={(event) => { event.stopPropagation(); onEdit(camera); }}>編集</button>
+                  <button onClick={(event) => { event.stopPropagation(); onDelete(camera.camera_id); }}>削除</button>
+                  <button onClick={(event) => { event.stopPropagation(); onDeleteImages(camera); }}>画像削除</button>
+                  <button onClick={(event) => { event.stopPropagation(); onTest(camera); }}>接続テスト</button>
                 </td>
               </tr>
             ))}

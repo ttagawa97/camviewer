@@ -19,7 +19,8 @@ export const emptyCameraForm: CameraFormValues = {
   password: "",
   capture_interval_minutes: 1,
   image_quality: "FullHD",
-  retention_days: 30
+  retention_days: 30,
+  ai_text: ""
 };
 
 export const emptyCompanyForm: CompanyFormValues = {

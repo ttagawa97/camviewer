@@ -6,6 +6,7 @@ import type {
   Company,
   CompanyFormValues,
   LatestImage,
+  Pagination,
   SiteFormValues,
   Site,
   User,
@@ -127,6 +128,15 @@ function normalizeUser(user: User | ApiUser): User {
     role: user.role?.role ?? "general_user",
     company_id: user.role?.company_id != null ? String(user.role.company_id) : user.role?.company != null ? String(user.role.company) : null,
     site_id: user.role?.site_id != null ? String(user.role.site_id) : user.role?.site != null ? String(user.role.site) : null
+  };
+}
+
+function cameraPayload(values: CameraFormValues, includeEmptyPassword: boolean) {
+  const aiText = values.ai_text.trim();
+  return {
+    ...values,
+    password: includeEmptyPassword || values.password ? values.password : undefined,
+    ai_text: aiText ? aiText : null
   };
 }
 
@@ -260,16 +270,22 @@ export const api = {
   createCamera: (values: CameraFormValues, companyId?: string | null, siteId?: string | null) =>
     request<{ camera_id: string; camera_name: string; status: string }>("/cameras/", {
       method: "POST",
-      body: JSON.stringify({ ...values, company_id: companyId, site_id: siteId })
+      body: JSON.stringify({ ...cameraPayload(values, true), company_id: companyId, site_id: siteId })
     }),
 
   updateCamera: (cameraId: string, values: CameraFormValues) =>
     request<{ camera_id: string; camera_name: string; updated_at: string }>(`/cameras/${cameraId}/`, {
       method: "PUT",
-      body: JSON.stringify(values)
+      body: JSON.stringify(cameraPayload(values, false))
     }),
 
   deleteCamera: (cameraId: string) => request(`/cameras/${cameraId}/?delete_images=false`, { method: "DELETE" }),
+
+  deleteCameraImages: (cameraId: string) =>
+    request<{ camera_id: string; deleted_image_count: number; deleted_file_count: number }>(`/cameras/${cameraId}/images/`, {
+      method: "DELETE",
+      body: "{}"
+    }),
 
   testConnection: (values: Partial<CameraFormValues>, companyId?: string | null, siteId?: string | null) =>
     request<{
@@ -304,10 +320,10 @@ export const api = {
     );
   },
 
-  thumbnails: (cameraId: string, date: string) =>
-    request<{ camera: Pick<Camera, "camera_id" | "camera_name">; date: string; images: CapturedImage[] }>(
-      `/images/thumbnails/?camera_id=${encodeURIComponent(cameraId)}&date=${encodeURIComponent(date)}&sort=captured_at_desc&page=1&page_size=100`
-    ).then((data) => data.images),
+  thumbnails: (cameraId: string, date: string, page = 1, pageSize = 100) =>
+    request<{ camera: Pick<Camera, "camera_id" | "camera_name">; date: string; images: CapturedImage[]; pagination: Pagination }>(
+      `/images/by_date_range/?camera_id=${encodeURIComponent(cameraId)}&date=${encodeURIComponent(date)}&sort=captured_at_desc&page=${page}&page_size=${pageSize}`
+    ),
 
   latestBulk: (cameraIds: string[]) =>
     request<{ server_time: string; cameras: LatestImage[] }>("/images/latest/bulk/", {

@@ -66,6 +66,7 @@ const cameras: Camera[] = [
     capture_interval_minutes: 1,
     image_quality: "FullHD",
     retention_days: 30,
+    ai_text: "入口付近の人物、車両、異常の有無を要約してください",
     status: "active",
     last_capture_at: "2026-06-25T15:58:00+09:00",
     last_capture_status: "success"
@@ -81,6 +82,7 @@ const cameras: Camera[] = [
     capture_interval_minutes: 5,
     image_quality: "HD",
     retention_days: 14,
+    ai_text: "",
     status: "active",
     last_capture_at: "2026-06-25T15:55:00+09:00",
     last_capture_status: "failed",
@@ -97,6 +99,7 @@ const cameras: Camera[] = [
     capture_interval_minutes: 10,
     image_quality: "WXGA",
     retention_days: 60,
+    ai_text: null,
     status: "active",
     last_capture_at: null,
     last_capture_status: "not_yet"
@@ -117,7 +120,9 @@ const images: CapturedImage[] = Array.from({ length: 12 }, (_, index) => ({
   image_url: placeholder(`正面入口 ${index + 1}`),
   image_quality: "FullHD",
   width: 1920,
-  height: 1080
+  height: 1080,
+  ai_analysis_status: index % 3 === 0 ? "completed" : "not_required",
+  ai_response_text: index % 3 === 0 ? "入口付近に人物がいます。車両や明確な異常は確認されていません。" : null
 }));
 
 export function mockLogin(loginId: string, password: string): User | null {

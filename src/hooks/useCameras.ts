@@ -61,6 +61,18 @@ export function useCameras({
     [loadCameras, showToast, useMock, withLoading]
   );
 
+  const deleteCameraImages = useCallback(
+    async (camera: Camera) => {
+      if (!window.confirm(`${camera.camera_name} の保存済み画像をすべて削除します。\nカメラ設定は削除されません。この操作は元に戻せません。よろしいですか？`)) return;
+      await withLoading(async () => {
+        if (!useMock) await api.deleteCameraImages(camera.camera_id);
+        showToast("カメラの保存済み画像を削除しました");
+        await loadCameras();
+      });
+    },
+    [loadCameras, showToast, useMock, withLoading]
+  );
+
   const testSavedCamera = useCallback(
     async (camera: Camera) => {
       await withLoading(async () => {
@@ -81,5 +93,5 @@ export function useCameras({
     [contextCompanyId, contextSiteId, showToast, useMock, withLoading]
   );
 
-  return { cameras, setCameras, loadCameras, saveCamera, deleteCamera, testSavedCamera, testCameraValues };
+  return { cameras, setCameras, loadCameras, saveCamera, deleteCamera, deleteCameraImages, testSavedCamera, testCameraValues };
 }

@@ -20,7 +20,8 @@ export function CameraFormScreen({
     login_id: camera?.login_id ?? "",
     capture_interval_minutes: camera?.capture_interval_minutes ?? 1,
     image_quality: camera?.image_quality ?? "FullHD",
-    retention_days: camera?.retention_days ?? 30
+    retention_days: camera?.retention_days ?? 30,
+    ai_text: camera?.ai_text ?? ""
   });
   const [formError, setFormError] = useState("");
 
@@ -33,6 +34,7 @@ export function CameraFormScreen({
     if (!camera && !values.password.trim()) return "パスワードは必須です";
     if (values.capture_interval_minutes < 1) return "取得間隔は1分以上で入力してください";
     if (values.retention_days < 1) return "保存期間は1日以上で入力してください";
+    if (values.ai_text.length > 2000) return "AIテキストは2000文字以内で入力してください";
     return "";
   };
 
@@ -91,6 +93,15 @@ export function CameraFormScreen({
             <input value={values.retention_days} type="number" min={1} onChange={(event) => update("retention_days", Number(event.target.value))} />
             <span>日</span>
           </div>
+        </label>
+        <label className="form-span-all">
+          <span>AIテキスト</span>
+          <textarea
+            value={values.ai_text}
+            maxLength={2000}
+            placeholder="例：画像内の危険箇所、人物、車両、異常の有無を256文字以内で要約してください"
+            onChange={(event) => update("ai_text", event.target.value)}
+          />
         </label>
       </div>
       {formError && <div className="error-box">{formError}</div>}

@@ -24,7 +24,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -78,14 +79,25 @@ button:disabled {
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
-  min-height: 38px;
   border: 1px solid #c6d0cd;
   border-radius: 6px;
   background: #ffffff;
-  padding: 0 10px;
   color: #17211f;
+}
+
+input,
+select {
+  min-height: 38px;
+  padding: 0 10px;
+}
+
+textarea {
+  min-height: 112px;
+  padding: 10px;
+  resize: vertical;
 }
 
 label span {
@@ -614,6 +626,29 @@ tbody tr:hover {
   font-size: 12px;
 }
 
+.thumbnail-ai-text {
+  display: -webkit-box;
+  min-height: 2.9em;
+  overflow: hidden;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding-top: 12px;
+}
+
+.pagination span {
+  color: #52625e;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .status {
   display: inline-flex;
   align-items: center;
@@ -670,6 +705,10 @@ tbody tr:hover {
 }
 
 .form-grid label:nth-child(2) {
+  grid-column: 1 / -1;
+}
+
+.form-span-all {
   grid-column: 1 / -1;
 }
 
