@@ -5,6 +5,7 @@ import type {
   CapturedImage,
   Company,
   CompanyFormValues,
+  ImageSummary,
   LatestImage,
   Pagination,
   SiteFormValues,
@@ -321,7 +322,7 @@ export const api = {
   },
 
   thumbnails: (cameraId: string, date: string, page = 1, pageSize = 100) =>
-    request<{ camera: Pick<Camera, "camera_id" | "camera_name">; date: string; images: CapturedImage[]; pagination: Pagination }>(
+    request<{ camera: Pick<Camera, "camera_id" | "camera_name">; date: string; summary?: ImageSummary; images: CapturedImage[]; pagination: Pagination }>(
       `/images/by_date_range/?camera_id=${encodeURIComponent(cameraId)}&date=${encodeURIComponent(date)}&sort=captured_at_desc&page=${page}&page_size=${pageSize}`
     ),
 

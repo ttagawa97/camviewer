@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { api } from "../api";
 import { mock } from "../mock";
-import type { AvailableDate, Camera, CapturedImage, LatestImage, Pagination } from "../types";
+import type { AvailableDate, Camera, CapturedImage, ImageSummary, LatestImage, Pagination } from "../types";
 
 const thumbnailPageSize = 100;
 const emptyPagination: Pagination = {
@@ -10,6 +10,15 @@ const emptyPagination: Pagination = {
   total_count: 0,
   total_pages: 1
 };
+const emptyImageSummary: ImageSummary = {
+  image_count: 0,
+  total_file_size_bytes: 0
+};
+
+const summarizeImages = (images: CapturedImage[], imageCount = images.length): ImageSummary => ({
+  image_count: imageCount,
+  total_file_size_bytes: images.reduce((total, image) => total + (image.file_size_bytes ?? 0), 0)
+});
 
 export function useImages({
   useMock,
@@ -29,6 +38,7 @@ export function useImages({
   const [availableDates, setAvailableDates] = useState<AvailableDate[]>([]);
   const [selectedDate, setSelectedDate] = useState(initialSelectedDate);
   const [images, setImages] = useState<CapturedImage[]>([]);
+  const [imageSummary, setImageSummary] = useState<ImageSummary>(emptyImageSummary);
   const [thumbnailPagination, setThumbnailPagination] = useState<Pagination>(emptyPagination);
   const [latestImages, setLatestImages] = useState<LatestImage[]>([]);
   const lastLoadedCameraId = useRef<string | null>(null);
@@ -39,6 +49,7 @@ export function useImages({
         const mockImages = mock.thumbnails(cameraId);
         const start = (page - 1) * thumbnailPageSize;
         setImages(mockImages.slice(start, start + thumbnailPageSize));
+        setImageSummary(summarizeImages(mockImages));
         setThumbnailPagination({
           page,
           page_size: thumbnailPageSize,
@@ -50,6 +61,7 @@ export function useImages({
 
       const data = await api.thumbnails(cameraId, date, page, thumbnailPageSize);
       setImages(data.images);
+      setImageSummary(data.summary ?? summarizeImages(data.images, data.pagination.total_count));
       setThumbnailPagination(data.pagination);
     },
     [useMock]
@@ -62,6 +74,7 @@ export function useImages({
           setAvailableDates([]);
           setSelectedDate("");
           setImages([]);
+          setImageSummary(emptyImageSummary);
           setThumbnailPagination(emptyPagination);
           lastLoadedCameraId.current = null;
           return;
@@ -76,6 +89,7 @@ export function useImages({
         if (nextDate) await loadThumbnails(camera.camera_id, nextDate, 1);
         else {
           setImages([]);
+          setImageSummary(emptyImageSummary);
           setThumbnailPagination(emptyPagination);
         }
       }),
@@ -110,6 +124,7 @@ export function useImages({
     selectedDate,
     setSelectedDate,
     images,
+    imageSummary,
     thumbnailPagination,
     latestImages,
     setLatestImages,

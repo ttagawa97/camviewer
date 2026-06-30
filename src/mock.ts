@@ -121,6 +121,7 @@ const images: CapturedImage[] = Array.from({ length: 12 }, (_, index) => ({
   image_quality: "FullHD",
   width: 1920,
   height: 1080,
+  file_size_bytes: 420_000 + index * 18_000,
   ai_analysis_status: index % 3 === 0 ? "completed" : "not_required",
   ai_response_text: index % 3 === 0 ? "入口付近に人物がいます。車両や明確な異常は確認されていません。" : null
 }));

@@ -2,12 +2,25 @@ import { DayPicker } from "@daypicker/react";
 import { ja } from "@daypicker/react/locale";
 import "@daypicker/react/style.css";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { AvailableDate, Camera, CapturedImage, Pagination } from "../types";
+import type { AvailableDate, Camera, CapturedImage, ImageSummary, Pagination } from "../types";
 import { formatDateKeyWithWeek, formatDateTime, parseDateKey, statusLabel, toDateKey } from "../utils/format";
+
+const formatBytes = (bytes: number) => {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  let value = bytes;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+  return `${unitIndex === 0 ? Math.round(value) : value.toFixed(1)} ${units[unitIndex]}`;
+};
 
 export function ThumbnailScreen(props: {
   cameras: Camera[];
   images: CapturedImage[];
+  imageSummary: ImageSummary;
   selectedCamera: Camera | null;
   selectedDate: string;
   availableDates: AvailableDate[];
@@ -123,6 +136,10 @@ export function ThumbnailScreen(props: {
                 />
               </div>
             )}
+          </div>
+          <div className="image-summary" aria-label="画像一覧サマリー">
+            <span>{props.imageSummary.image_count}枚</span>
+            <span>{formatBytes(props.imageSummary.total_file_size_bytes)}</span>
           </div>
         </div>
         <div className="thumbnail-scroll">

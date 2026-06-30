@@ -434,6 +434,22 @@ tbody tr:hover {
   white-space: nowrap;
 }
 
+.image-summary {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-left: auto;
+  color: #52625e;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.image-summary span {
+  min-width: max-content;
+}
+
 .date-dropdown {
   position: relative;
   width: 190px;

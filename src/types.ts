@@ -98,6 +98,11 @@ export interface Pagination {
   total_pages: number;
 }
 
+export interface ImageSummary {
+  image_count: number;
+  total_file_size_bytes: number;
+}
+
 export interface LatestImage {
   camera_id: string;
   camera_name: string;

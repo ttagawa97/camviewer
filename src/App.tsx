@@ -154,6 +154,7 @@ function AppContent() {
     availableDates,
     selectedDate,
     images,
+    imageSummary,
     thumbnailPagination,
     latestImages,
     loadDatesAndImages,
@@ -473,6 +474,7 @@ function AppContent() {
         <ThumbnailScreen
           cameras={cameras}
           images={images}
+          imageSummary={imageSummary}
           selectedCamera={selectedCamera}
           selectedDate={selectedDate}
           availableDates={availableDates}
