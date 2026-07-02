@@ -758,17 +758,36 @@ tbody tr:hover {
   font-size: 16px;
 }
 
-.latest-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 14px;
+.multi-latest-panel {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
 }
 
-.latest-card {
+.latest-grid {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  grid-template-columns: repeat(var(--latest-grid-columns, 2), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--latest-grid-rows, 1), minmax(0, 1fr));
+  gap: 10px;
+}
+
+.latest-frame {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
   border: 1px solid #d7dfdc;
   border-radius: 8px;
-  padding: 12px;
   background: #ffffff;
+  padding: 10px;
+}
+
+.latest-frame.blank {
+  border-style: dashed;
+  background: #f8fbfa;
 }
 
 .card-title {
@@ -776,27 +795,49 @@ tbody tr:hover {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
+}
+
+.card-title h3 {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .latest-image-button {
+  display: grid;
+  flex: 1;
+  min-height: 0;
   width: 100%;
+  place-items: center;
+  border-color: #d7dfdc;
+  background: #091210;
   padding: 0;
   overflow: hidden;
 }
 
-.latest-image-button img,
-.image-placeholder {
-  aspect-ratio: 16 / 9;
+.latest-image-button img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .image-placeholder {
   display: grid;
+  flex: 1;
+  min-height: 0;
   place-items: center;
   border: 1px dashed #bac7c3;
   border-radius: 6px;
   background: #f3f7f6;
   color: #61716d;
+}
+
+.latest-frame p {
+  margin: 8px 0 0;
+  color: #61716d;
+  font-size: 12px;
 }
 
 .modal-backdrop {

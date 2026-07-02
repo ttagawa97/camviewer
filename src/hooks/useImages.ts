@@ -4,6 +4,7 @@ import { mock } from "../mock";
 import type { AvailableDate, Camera, CapturedImage, ImageSummary, LatestImage, Pagination } from "../types";
 
 const thumbnailPageSize = 100;
+const maxLatestImageCount = 9;
 const emptyPagination: Pagination = {
   page: 1,
   page_size: thumbnailPageSize,
@@ -18,6 +19,17 @@ const emptyImageSummary: ImageSummary = {
 const summarizeImages = (images: CapturedImage[], imageCount = images.length): ImageSummary => ({
   image_count: imageCount,
   total_file_size_bytes: images.reduce((total, image) => total + (image.file_size_bytes ?? 0), 0)
+});
+
+const emptyLatestImage = (cameraId: string): LatestImage => ({
+  camera_id: cameraId,
+  camera_name: cameraId,
+  latest_status: "not_yet",
+  latest_image_id: null,
+  latest_captured_at: null,
+  latest_image_url: null,
+  latest_thumbnail_url: null,
+  latest_error: null
 });
 
 export function useImages({
@@ -114,9 +126,44 @@ export function useImages({
 
   const refreshLatestImages = useCallback(
     async (cameraIds: string[]) => {
-      setLatestImages(useMock ? mock.latestBulk(cameraIds).cameras : (await api.latestBulk(cameraIds)).cameras);
+      const displayCameraIds = cameraIds.slice(0, maxLatestImageCount);
+      if (useMock) {
+        setLatestImages(mock.latestBulk(displayCameraIds).cameras);
+        return;
+      }
+
+      const currentLatest = await api.latestBulk(displayCameraIds);
+      const currentLatestByCameraId = new Map(currentLatest.cameras.map((item) => [item.camera_id, item]));
+      const latestAcrossDates = await Promise.all(
+        displayCameraIds.map(async (cameraId) => {
+          const fallback = currentLatestByCameraId.get(cameraId) ?? emptyLatestImage(cameraId);
+          try {
+            const dates = await api.availableDates(contextCompanyId, contextSiteId, cameraId);
+            const latestDate = dates.default_date || dates.available_dates[0]?.date || "";
+            if (!latestDate) return fallback;
+
+            const latestDayImages = await api.thumbnails(cameraId, latestDate, 1, 1);
+            const latestImage = latestDayImages.images[0];
+            if (!latestImage) return fallback;
+
+            return {
+              camera_id: cameraId,
+              camera_name: latestDayImages.camera.camera_name || latestImage.camera_name || fallback.camera_name,
+              latest_status: "success" as const,
+              latest_image_id: latestImage.image_id,
+              latest_captured_at: latestImage.captured_at,
+              latest_image_url: latestImage.image_url,
+              latest_thumbnail_url: latestImage.thumbnail_url,
+              latest_error: null
+            };
+          } catch {
+            return fallback;
+          }
+        })
+      );
+      setLatestImages(latestAcrossDates);
     },
-    [useMock]
+    [contextCompanyId, contextSiteId, useMock]
   );
 
   return {

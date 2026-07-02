@@ -1,4 +1,5 @@
 import type { Camera, Company, Screen, Site, User } from "./types";
+import { clearStoredAuthSession, isStoredAuthFresh } from "./authSession";
 
 const storedUserKey = "camviewer.user";
 const storedViewKey = "camviewer.view";
@@ -29,18 +30,27 @@ const screens: Screen[] = [
 ];
 
 export function loadStoredUser(): User | null {
+  if (!isStoredAuthFresh()) {
+    clearStoredAuthSession();
+    return null;
+  }
+
   try {
     const raw = localStorage.getItem(storedUserKey);
     return raw ? (JSON.parse(raw) as User) : null;
   } catch {
-    localStorage.removeItem(storedUserKey);
+    clearStoredAuthSession();
     return null;
   }
 }
 
 export function storeUser(user: User | null) {
-  if (user) localStorage.setItem(storedUserKey, JSON.stringify(user));
-  else localStorage.removeItem(storedUserKey);
+  if (user) {
+    localStorage.setItem(storedUserKey, JSON.stringify(user));
+    sessionStorage.removeItem(storedUserKey);
+  } else {
+    clearStoredAuthSession();
+  }
 }
 
 export function loadStoredView(userId?: string | null): StoredView | null {

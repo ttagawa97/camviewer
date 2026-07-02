@@ -19,6 +19,7 @@ import { SiteFormScreen } from "./screens/SiteFormScreen";
 import { SiteSelectScreen } from "./screens/SiteSelectScreen";
 import { ThumbnailScreen } from "./screens/ThumbnailScreen";
 import { UserManagementScreen } from "./screens/UserManagementScreen";
+import { markAuthStarted } from "./authSession";
 import { initialScreenFor, loadStoredUser, loadStoredView, storeUser, storeView } from "./storage";
 import type {
   Camera,
@@ -178,6 +179,14 @@ function AppContent() {
 
   const selectedCompanyName = selectedCompany?.company_name ?? (user?.company_id ? companies.find((item) => item.company_id === user.company_id)?.company_name : "");
   const selectedSiteName = selectedSite?.site_name ?? (user?.site_id ? sites.find((item) => item.site_id === user.site_id)?.site_name : "");
+  const visibleLatestCameraIds = useMemo(() => checkedCameraIds.slice(0, 9), [checkedCameraIds]);
+  const visibleLatestImages = useMemo(() => {
+    const imageByCameraId = new Map(latestImages.map((item) => [item.camera_id, item]));
+    return visibleLatestCameraIds.flatMap((cameraId) => {
+      const image = imageByCameraId.get(cameraId);
+      return image ? [image] : [];
+    });
+  }, [latestImages, visibleLatestCameraIds]);
 
   const breadcrumb = useMemo(() => {
     const items: string[] = [];
@@ -327,12 +336,12 @@ function AppContent() {
   }, [loadDatesAndImages, screen, selectedCamera]);
 
   useEffect(() => {
-    if (screen !== "multiLatest" || checkedCameraIds.length === 0) return;
-    const load = async () => refreshLatestImages(checkedCameraIds);
+    if (screen !== "multiLatest" || visibleLatestCameraIds.length === 0) return;
+    const load = async () => refreshLatestImages(visibleLatestCameraIds);
     void load();
     const timer = window.setInterval(load, 60000);
     return () => window.clearInterval(timer);
-  }, [checkedCameraIds, refreshLatestImages, screen]);
+  }, [refreshLatestImages, screen, visibleLatestCameraIds]);
 
   const handleLogin = async (loginId: string, password: string) => {
     authCheckVersion.current += 1;
@@ -349,6 +358,7 @@ function AppContent() {
       if (!useMock) {
         nextUser = await api.me();
       }
+      markAuthStarted();
       storeUser(nextUser);
       setUser(nextUser);
       setScreen(initialScreenFor(nextUser));
@@ -362,7 +372,7 @@ function AppContent() {
     });
   };
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     authCheckVersion.current += 1;
     try {
       if (!useMock) await api.logout();
@@ -376,7 +386,7 @@ function AppContent() {
       setSelectedCamera(null);
       setCheckedCameraIds([]);
     }
-  };
+  }, [useMock]);
 
   if (!user || screen === "login") {
     return <LoginScreen error={error} loading={loading} onLogin={handleLogin} />;
@@ -524,9 +534,10 @@ function AppContent() {
 
       {screen === "multiLatest" && (
         <MultiLatestScreen
-          latestImages={latestImages}
+          latestImages={visibleLatestImages}
+          displayCameraCount={visibleLatestCameraIds.length}
           onBack={() => setScreen("thumbnail")}
-          onRefresh={() => refreshLatestImages(checkedCameraIds)}
+          onRefresh={() => refreshLatestImages(visibleLatestCameraIds)}
           onOpenImage={setActiveImage}
         />
       )}

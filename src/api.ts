@@ -13,6 +13,7 @@ import type {
   User,
   UserFormValues
 } from "./types";
+import { clearStoredAuthSession, isStoredAuthFresh } from "./authSession";
 
 interface ApiEnvelope<T> {
   success: boolean;
@@ -21,6 +22,8 @@ interface ApiEnvelope<T> {
 }
 
 const apiBase = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
+
+if (!isStoredAuthFresh()) clearStoredAuthSession();
 
 let accessToken = localStorage.getItem("camviewer.accessToken") ?? "";
 
@@ -52,16 +55,26 @@ interface LoginResponse {
 
 export function setAccessToken(token: string) {
   accessToken = token;
-  if (token) localStorage.setItem("camviewer.accessToken", token);
-  else localStorage.removeItem("camviewer.accessToken");
+  if (token) {
+    localStorage.setItem("camviewer.accessToken", token);
+    sessionStorage.removeItem("camviewer.accessToken");
+  } else {
+    localStorage.removeItem("camviewer.accessToken");
+    sessionStorage.removeItem("camviewer.accessToken");
+  }
 }
 
 let csrfToken = localStorage.getItem("camviewer.csrfToken") ?? "";
 
 function setCsrfToken(token: string) {
   csrfToken = token;
-  if (token) localStorage.setItem("camviewer.csrfToken", token);
-  else localStorage.removeItem("camviewer.csrfToken");
+  if (token) {
+    localStorage.setItem("camviewer.csrfToken", token);
+    sessionStorage.removeItem("camviewer.csrfToken");
+  } else {
+    localStorage.removeItem("camviewer.csrfToken");
+    sessionStorage.removeItem("camviewer.csrfToken");
+  }
 }
 
 function readCookie(name: string) {
